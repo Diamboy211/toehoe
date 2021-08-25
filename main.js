@@ -375,18 +375,21 @@ function loop() {
           break;
         case 3:
           if (frameCounter % 180 < 60) {
-            let nb = new Bullet([Math.random() * w, Math.random() * h], 0);
-            let target = [];
-            let d1 = [];
-            let rand = Math.random() * 6.28318;
-            d1[0] = Math.cos(rand);
-            d1[1] = Math.sin(rand);
-            add2(target, nb.pos, d1);
-            nb.setTarget(target);
-            let d = [];
-            sub2(d, player.p, nb.pos);
-            if (length2(d) > 50) {
-              bullets.push(nb);
+            for (let _i = 0; _i < 3; _i++)
+            {
+              let nb = new Bullet([Math.random() * w, Math.random() * h], 0);
+              let target = [];
+              let d1 = [];
+              let rand = Math.random() * 6.28318;
+              d1[0] = Math.cos(rand);
+              d1[1] = Math.sin(rand);
+              add2(target, nb.pos, d1);
+              nb.setTarget(target);
+              let d = [];
+              sub2(d, player.p, nb.pos);
+              if (length2(d) > 50) {
+                bullets.push(nb);
+              }
             }
           }
           frameCounter++;
