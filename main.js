@@ -69,6 +69,25 @@ let poly = (verts, fill) => {
   ctx.fill();
 };
 
+let queued_fill = (fill) => {
+  ctx.fillStyle = fill;
+};
+
+let queued_start = () => {
+  ctx.beginPath();
+};
+
+let queued_poly = (verts) => {
+  for (let i = 0; i < verts.length; i++) {
+    if (i == 0) ctx.moveTo(verts[0][0], verts[0][1]);
+    else ctx.lineTo(verts[i][0], verts[i][1]);
+  }
+};
+
+let queued_end = () => {
+  ctx.fill();
+};
+
 let copyPoly = (out, a) => {
   for (let i = 0; i < a.length; i++) {
     out[i] = [];
@@ -104,6 +123,8 @@ class Bullet {
     this.lastDir = [0, 1];
     this.grazed = false;
     this.life = 0;
+    this.drew = false;
+    this.drawStep = 0;
   }
   setTarget(target) {
     copy2(this.target, target);
@@ -121,26 +142,43 @@ class Bullet {
       dir[1] /= l / this.speed;
     }
     if (this.passTarget && !this.pdir) this.pdir = dir;
-
-    if (Math.abs(dir[0]) > ep && Math.abs(dir[1]) > ep) this.lastDir = dir;
+    if (length2(dir) > ep) this.lastDir = dir;
     if (!this.pdir) {
       sub2(this.pos, this.pos, dir);
     } else {
       sub2(this.pos, this.pos, this.pdir);
     }
-    this.draw();
+  }
+  copy() {
+    let b = new Bullet(this.pos, this.speed);
+    copy2(b.target, this.target);
+    copy2(b.lastDir, this.lastDir);
+    b.passTarget = this.passTarget;
+    return b;
   }
   draw() {
-    let rect = makeRect(this.pos[0] - 2, this.pos[1] - 5, 4, 10);
-    let rect2 = makeRect(this.pos[0] - 1.5, this.pos[1] - 4.5, 3, 9);
-    for (let i = 0; i < 4; i++) {
+    if (this.drawStep == 0) {
+      let rect = makeRect(this.pos[0] - 2, this.pos[1] - 5, 4, 10);
       let d = [];
       normalize2(d, this.lastDir);
-      rotate(rect[i], d, this.pos);
-      rotate(rect2[i], d, this.pos);
+      for (let i = 0; i < 4; i++) {
+        rotate(rect[i], d, this.pos);
+      }
+      queued_fill("#FFFFFF");
+      queued_poly(rect);
+      this.drawStep++;
+    } else if (this.drawStep == 1) {
+      let rect2 = makeRect(this.pos[0] - 1.5, this.pos[1] - 4.5, 3, 9);
+      let d = [];
+      normalize2(d, this.lastDir);
+      for (let i = 0; i < 4; i++) {
+        rotate(rect2[i], d, this.pos);
+      }
+      queued_fill("#FF3F3F");
+      queued_poly(rect2);
+      this.drew = true;
+      this.drawStep = 0;
     }
-    poly(rect, "#FFFFFF");
-    poly(rect2, "#FF3F3F");
   }
 }
 
@@ -355,7 +393,14 @@ function loop() {
               add2(target, target, player.p);
               nb.setTarget(target);
               nb.passTarget = true;
-              bullets.push(nb);
+              const times = frameCounter / 90 + 2;
+              for (let j = 0; j < times; j++) {
+                let nnb = nb.copy();
+                let rot = [Math.sin(j * 6.2831853 / times), Math.cos(j * 6.2831853 / times)];
+                rotate(nnb.pos, rot, [w/2, h/4]);
+                rotate(nnb.target, rot, [w/2, h/4]);
+                bullets.push(nnb);
+              }
             }
           }
           if (frameCounter % 30 == 0) {
@@ -370,23 +415,25 @@ function loop() {
               bullets.push(nb);
             }
           }
-          if (frameCounter % 360 == 0) bullets = [];
+          // if (frameCounter % 360 == 0) bullets = [];
           frameCounter++;
           break;
         case 3:
           if (frameCounter % 180 < 60) {
-            let nb = new Bullet([Math.random() * w, Math.random() * h], 0);
-            let target = [];
-            let d1 = [];
-            let rand = Math.random() * 6.28318;
-            d1[0] = Math.cos(rand);
-            d1[1] = Math.sin(rand);
-            add2(target, nb.pos, d1);
-            nb.setTarget(target);
-            let d = [];
-            sub2(d, player.p, nb.pos);
-            if (length2(d) > 50) {
-              bullets.push(nb);
+            for (let i = 0; i < 4; i++) {
+              let nb = new Bullet([Math.random() * w, Math.random() * h], 0);
+              let target = [];
+              let d1 = [];
+              let rand = Math.random() * 6.28318;
+              d1[0] = Math.cos(rand);
+              d1[1] = Math.sin(rand);
+              add2(target, nb.pos, d1);
+              nb.setTarget(target);
+              let d = [];
+              sub2(d, player.p, nb.pos);
+              if (length2(d) > 50) {
+                bullets.push(nb);
+              }
             }
           }
           frameCounter++;
@@ -429,6 +476,7 @@ function loop() {
           }
       }
       bullets[i].tick();
+      bullets[i].drew = false;
 
       if (length2(l) < 24 && !player.dead && !bullets[i].grazed) {
         player.graze++;
@@ -438,6 +486,16 @@ function loop() {
         player.dead = true;
         deadCounter = 63;
       }
+    }
+    let drewAllBullets = false;
+    while (!drewAllBullets) {
+      drewAllBullets = true;
+      queued_start();
+      for (let i = 0; i < bullets.length; i++) {
+        bullets[i].draw();
+        drewAllBullets = drewAllBullets && bullets[i].drew;
+      }
+      queued_end();
     }
   }
   if (!edead) {
