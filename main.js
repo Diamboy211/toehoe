@@ -9,9 +9,12 @@ let player = {
   p: [],
   dead: false,
   graze: 0,
+  pgraze: 0,
+  score: 0,
   speed: 5,
   hitbox: 4
 };
+let displayScore = 0;
 let frameCounter = 0;
 let deadCounter = 0;
 let portraitCounter = 0;
@@ -535,8 +538,8 @@ function loop() {
     }
     for (let i = 0; i < bullets.length; i++) {
       if (
-        bullets[i].pos[0] != clamp(bullets[i].pos[0], 0, w) ||
-        bullets[i].pos[1] != clamp(bullets[i].pos[1], 0, h)
+        bullets[i].pos[0] != clamp(bullets[i].pos[0], -10, w + 10) ||
+        bullets[i].pos[1] != clamp(bullets[i].pos[1], -10, h + 10)
       ) {
         del(bullets, i);
         continue;
@@ -594,6 +597,7 @@ function loop() {
 
       if (length2(l) < 24 && !player.dead && !bullets[i].grazed) {
         player.graze++;
+        player.score += 2.0;
         bullets[i].grazed = true;
       }
       if (length2(l) < player.hitbox && !player.dead) {
@@ -630,15 +634,15 @@ function loop() {
     );
     ctx.stroke();
   }
-  ctx.strokeStyle = "#FFFFFF";
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = "30px Arial";
-  ctx.fillText(`Graze: ${player.graze}`, 15, h - 15);
-
-  if (Math.abs(w / 2 - player.p[0]) < 40 && !player.dead && ehp > 0 && !edead)
+  if (Math.abs(w / 2 - player.p[0]) < 40 && player.p[1] > h/4 && !player.dead && ehp > 0 && !edead)
+  {
     ehp--;
+    player.score += mix(0.2, 0.5, 1 - (player.p[1]-h/4) / (3*h/4));
+  }
   if (ehp == 0 && !edead) {
     ephase++;
+    player.score += ephase * 1500 * (1 + (player.graze - player.pgraze) * 0.005);
+    player.pgraze = player.graze;
     if (ephase == 5) edead = true;
     else {
       portraitCounter = 120;
@@ -648,6 +652,15 @@ function loop() {
     bullets = [];
     lasers = [];
   }
+  displayScore += Math.max(player.score * 0.02, 17);
+  if (displayScore > player.score) displayScore = player.score;
+  
+  ctx.strokeStyle = "#000000";
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "30px Arial";
+  ctx.fillText(`Score: ${Math.floor(displayScore)}`, 15, h - 45);
+  ctx.fillText(`Graze: ${player.graze}`, 15, h - 15);
+  ctx.strokeStyle = "#FFFFFF";
 
   // start at (w + 144, h / 3)
   // stop at (w / 2, h / 2)
