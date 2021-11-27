@@ -25,6 +25,7 @@
       canvas {
         /* width: 100%;
         height: 100%;*/
+        display: none;
       }
       html,
       body {
@@ -34,8 +35,26 @@
         width: 100%;
         height: 100%;
       }
+      div {
+        display: none;
+      }
+      button {
+        width: 100%;
+        padding: 7%;
+      }
     </style>
-    <audio src="" loop="loop"></audio>
+    <div id="a">
+      <p>
+        choose your preferred input method
+      </p>
+      <button onclick="inputType = 'm'; choseInputType = true; readyElement.style.display = 'block'; inputTypeElement.style.display = 'none'">
+        mouse/touch
+      </button><br />
+      <button onclick="inputType = 'k'; choseInputType = true; readyElement.style.display = 'block'; inputTypeElement.style.display = 'none'">
+        keyboard
+      </button>
+    </div>
+    <div id="b">ready in 120 frames</div>
     <canvas></canvas>
   </body>
 </html>
