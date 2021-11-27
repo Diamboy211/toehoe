@@ -1,5 +1,8 @@
+'use strict';
 let canvas = document.querySelector("canvas");
 let ctx = canvas.getContext("2d");
+let inputTypeElement = document.getElementById("a");
+let readyElement = document.getElementById("b");
 let x, y, w, h;
 let ep = 0.00001;
 let player = {
@@ -17,6 +20,11 @@ let mehp = (ehp = 750);
 let ephase = 0;
 let edead = false;
 let star = [];
+let inputType = 'n';
+//                up    down   left  right  shift
+let keyState = [  0  ,   0  ,   0  ,   0  ,   0  ]
+let choseInputType = false;
+let beginCounter = 120;
 
 let events$1 = [
   "touchstart",
@@ -59,6 +67,31 @@ function handleTouch(e) {
     y = e.clientY;
   }
 }
+
+function handlekeydown(e) {
+  switch (e.code) {
+    case 'ArrowUp':    keyState[0] = 1; break;
+    case 'ArrowDown':  keyState[1] = 1; break;
+    case 'ArrowLeft':  keyState[2] = 1; break;
+    case 'ArrowRight': keyState[3] = 1; break;
+    case 'ShiftLeft':  keyState[4] = 1; break;
+    default: break;
+  }
+}
+
+function handlekeyup(e) {
+  switch (e.code) {
+    case 'ArrowUp':    keyState[0] = 0; break;
+    case 'ArrowDown':  keyState[1] = 0; break;
+    case 'ArrowLeft':  keyState[2] = 0; break;
+    case 'ArrowRight': keyState[3] = 0; break;
+    case 'ShiftLeft':  keyState[4] = 0; break;
+    default: break;
+  }
+}
+
+document.addEventListener('keydown', handlekeydown);
+document.addEventListener('keyup',   handlekeyup  );
 
 let poly = (verts, fill) => {
   ctx.fillStyle = fill;
@@ -247,6 +280,7 @@ let del = (arr, index) => {
 };
 
 function setup() {
+  inputTypeElement.style.display = 'block';
   canvas.width = w = document.body.clientWidth;
   canvas.height = h = document.body.clientHeight;
   x = player.p[0] = w / 2;
@@ -268,15 +302,32 @@ function setup() {
 
 function loop() {
   requestAnimationFrame(loop);
-  let longest = length2([w, h]);
-  let dir = [];
-  sub2(dir, player.p, [x, y]);
-  let l = length2(dir);
-  if (l > player.speed) {
-    dir[0] /= l / player.speed;
-    dir[1] /= l / player.speed;
+  if (!choseInputType) {
+    return;
+  } else if (beginCounter --> 0) {
+    if (beginCounter == 0) {
+      readyElement.style.display = 'none';
+      canvas.style.display = 'block';
+    } else readyElement.innerText = `ready in ${beginCounter} ${beginCounter == 1 ? 'frame' : 'frames'}`;
+    return;
   }
-  sub2(player.p, player.p, dir);
+  let longest = length2([w, h]);
+  if (inputType == 'm') {
+    let dir = [];
+    sub2(dir, player.p, [x, y]);
+    let l = length2(dir);
+    if (l > player.speed) {
+      dir[0] /= l / player.speed;
+      dir[1] /= l / player.speed;
+    }
+    sub2(player.p, player.p, dir);
+  } else if (inputType == 'k') {
+    // soooooo readableeeeeeee
+    let dir = [keyState[3] - keyState[2], keyState[1] - keyState[0]];
+    if (dir[0] || dir[1]) normalize2(dir, dir);
+    mul2(dir, dir, player.speed * (1 - keyState[4] * 0.75) * 0.75);
+    add2(player.p, player.p, dir);
+  }
   player.p[0] = clamp(player.p[0], 0, w);
   player.p[1] = clamp(player.p[1], 0, h);
 
@@ -302,13 +353,13 @@ function loop() {
         makeRect(player.p[0] - i + 8, player.p[1] - longest, 6, longest),
         makeRect(player.p[0] - i + 10, player.p[1] - longest, 2, longest)
       ];
-      /*for (let j = 0; j < rects.length; j++) {
-        for (let k = 0; k < 4; k++) {
-          let t = [];
-          normalize2(t, [w/2-player.p[0], h/4-player.p[1]]);
-          rotate(rects[j][k], t, player.p);
-        }
-      }*/
+      // for (let j = 0; j < rects.length; j++) {
+      //   for (let k = 0; k < 4; k++) {
+      //     let t = [];
+      //     normalize2(t, [w/2-player.p[0], h/4-player.p[1]]);
+      //     rotate(rects[j][k], t, player.p);
+      //   }
+      // }
       poly(rects[0], "#3F0000");
       poly(rects[1], "#7F0000");
       poly(rects[2], "#FFFFFF");
