@@ -227,8 +227,10 @@ class Laser {
     normalize2(this.dir, dir);
     this.width = width;
     this.length = length;
+    this.life = 0;
   }
   tick() {
+    this.life++;
     this.draw();
   }
   draw() {
@@ -496,18 +498,26 @@ function loop() {
         case 4:
           if (frameCounter % 15 == 0) {
             let phase = frameCounter % 30 == 0 ? 1 : 0.5;
-            for (let i = 0; i < 64; i++) {
+            for (let i = 0; i < 96; i++) {
               let nb = new Bullet([w / 2, h / 4], 4);
               nb.setTarget([
-                w / 2 + (h / 5) * Math.cos(((i + 0.5 + phase) * Math.PI) / 16),
-                h / 4 + (h / 5) * Math.sin(((i + 0.5 + phase) * Math.PI) / 16)
+                w / 2 + (h / 5) * Math.cos(((i + 0.5 + phase) * Math.PI) / 24),
+                h / 4 + (h / 5) * Math.sin(((i + 0.5 + phase) * Math.PI) / 24)
               ]);
-              nb.extraData.crossDir = i >= 32;
               nb.extraData.type = 0;
+              let rel = [];
+              sub2(rel, nb.target, [w/2, h/4]);
+              normalize2(rel, rel);
+              nb.extraData.perp = [];
+              nb.extraData.frnt = [];
+              nb.extraData.perp[0] = rel[1];
+              nb.extraData.perp[1] = -rel[0];
+              if (i >= 48) mul2(nb.extraData.perp, nb.extraData.perp, -1.0);
+              copy2(nb.extraData.frnt, rel);
               bullets.push(nb);
             }
           }
-          if (ehp < mehp / 2 && frameCounter % 120 == 0) {
+          if (frameCounter % 120 == 119) {
             for (let i = 0; i < 3; i++) {
               for (let j = 0; j < 120; j++) {
                 let nb = new Bullet([w / 2, h / 4], 4);
@@ -518,7 +528,6 @@ function loop() {
                 nb.extraData.type = 1;
                 nb.extraData.perp = Math.floor(j / 24) - 2;
                 bullets.push(nb);
-
               }
             }
           }
@@ -527,6 +536,10 @@ function loop() {
       }
     }
     for (let i = 0; i < lasers.length; i++) {
+      switch (ephase) {
+        case 2:
+          break;
+      }
       lasers[i].tick();
       if (
         lasers[i].dist(player.p) < lasers[i].width + player.hitbox &&
@@ -562,20 +575,15 @@ function loop() {
           }
           break;
         case 4:
-          if (bullets[i].extraData.type == 0 && bullets[i].life == 60) {
-            let tp = [];
+          if (bullets[i].extraData.type == 0 && bullets[i].life >= 60) {
             let rel = [];
-            let perp = [];
-            copy2(tp, bullets[i].target);
-            sub2(rel, tp, [w/2, h/4]);
-            perp[0] = rel[1] * 3.0;
-            perp[1] = -rel[0] * 3.0;
-            if (bullets[i].extraData.crossDir) mul2(perp, perp, -1.0);
+            let perp = []
+            mul2(rel, bullets[i].extraData.frnt, 60);
+            mul2(perp, bullets[i].extraData.perp, (bullets[i].life - 60) / 3);
             add2(rel, rel, perp);
-            add2(tp, tp, rel);
-            bullets[i].setTarget(tp);
+            add2(rel, bullets[i].pos, rel);
+            bullets[i].setTarget(rel)
             bullets[i].setSpeed(2);
-            bullets[i].passTarget = true;
           } else if (bullets[i].extraData.type == 1 && frameCounter % 120 == 60) {
             let tp = [];
             let rel = [];
@@ -585,7 +593,7 @@ function loop() {
             perp[0] = rel[1];
             perp[1] = -rel[0];
             normalize2(perp, perp);
-            mul2(perp, perp, 50.0 * bullets[i].extraData.perp);
+            mul2(perp, perp, 100.0 * bullets[i].extraData.perp);
             add2(tp, tp, perp);
             bullets[i].setTarget(tp);
             bullets[i].passTarget = true;
