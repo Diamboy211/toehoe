@@ -482,8 +482,8 @@ function loop() {
               let target = [];
               let d1 = [];
               let rand = Math.random() * 6.28318;
-              d1[0] = Math.cos(rand);
-              d1[1] = Math.sin(rand);
+              d1[0] = Math.cos(rand) * 500;
+              d1[1] = Math.sin(rand) * 500;
               add2(target, nb.pos, d1);
               nb.setTarget(target);
               let d = [];
@@ -497,14 +497,13 @@ function loop() {
           break;
         case 4:
           if (frameCounter % 15 == 0) {
-            let phase = frameCounter % 30 == 0 ? 1 : 0.5;
+            let phase = frameCounter / 120;
             for (let i = 0; i < 96; i++) {
               let nb = new Bullet([w / 2, h / 4], 4);
               nb.setTarget([
                 w / 2 + (h / 5) * Math.cos(((i + 0.5 + phase) * Math.PI) / 24),
                 h / 4 + (h / 5) * Math.sin(((i + 0.5 + phase) * Math.PI) / 24)
               ]);
-              nb.extraData.type = 0;
               let rel = [];
               sub2(rel, nb.target, [w/2, h/4]);
               normalize2(rel, rel);
@@ -514,21 +513,8 @@ function loop() {
               nb.extraData.perp[1] = -rel[0];
               if (i >= 48) mul2(nb.extraData.perp, nb.extraData.perp, -1.0);
               copy2(nb.extraData.frnt, rel);
+              nb.passTarget = true;
               bullets.push(nb);
-            }
-          }
-          if (frameCounter % 120 == 119) {
-            for (let i = 0; i < 3; i++) {
-              for (let j = 0; j < 120; j++) {
-                let nb = new Bullet([w / 2, h / 4], 4);
-                nb.setTarget([
-                  w / 2 + (h / 18) * (i + 1) * Math.cos(((j + 0.5) * Math.PI) / 12),
-                  h / 4 + (h / 18) * (i + 1) * Math.sin(((j + 0.5) * Math.PI) / 12)
-                ]);
-                nb.extraData.type = 1;
-                nb.extraData.perp = Math.floor(j / 24) - 2;
-                bullets.push(nb);
-              }
             }
           }
           frameCounter++;
@@ -569,34 +555,22 @@ function loop() {
         case 3:
           if (frameCounter % 180 >= 120 && frameCounter % 180 < 150) {
             let s = (frameCounter % 180) - 120;
-            s /= 30 / 3;
+            s /= 20;
             bullets[i].setSpeed(s+1);
-            bullets[i].passTarget = true;
           }
+          if (frameCounter % 180 == 150) bullets[i].passTarget = true;
           break;
         case 4:
-          if (bullets[i].extraData.type == 0 && bullets[i].life >= 60) {
+          if (bullets[i].life >= 0) {
             let rel = [];
             let perp = []
             mul2(rel, bullets[i].extraData.frnt, 60);
-            mul2(perp, bullets[i].extraData.perp, (bullets[i].life - 60) / 3);
+            mul2(perp, bullets[i].extraData.perp, (bullets[i].life / 9) ** 2);
             add2(rel, rel, perp);
             add2(rel, bullets[i].pos, rel);
             bullets[i].setTarget(rel)
             bullets[i].setSpeed(2);
-          } else if (bullets[i].extraData.type == 1 && frameCounter % 120 == 60) {
-            let tp = [];
-            let rel = [];
-            let perp = [];
-            copy2(tp, player.p);
-            sub2(rel, tp, [w/2, h/4]);
-            perp[0] = rel[1];
-            perp[1] = -rel[0];
-            normalize2(perp, perp);
-            mul2(perp, perp, 100.0 * bullets[i].extraData.perp);
-            add2(tp, tp, perp);
-            bullets[i].setTarget(tp);
-            bullets[i].passTarget = true;
+            bullets[i].passTarget = false;
           }
           break;
       }
